@@ -1,8 +1,10 @@
 # COVID Dashboard specific
-CA-mark-scheme.pdf
-CA-specification.pdf
-example_tests/
+#CA-mark-scheme.pdf
+#CA-specification.pdf
+#example_tests/
 config.json
+.gitignore
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
