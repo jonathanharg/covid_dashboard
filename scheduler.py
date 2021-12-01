@@ -7,6 +7,7 @@ from covid_news_handling import update_news
 scheduler = sched.scheduler(time.time, time.sleep)
 scheduled_events = []
 
+
 def schedule_event(target_time, label, repeat, data, news, new=True):
     label_exists = any(event["title"] == label for event in scheduled_events)
     if not label_exists:
@@ -61,6 +62,7 @@ def remove_event(title):
     scheduled_events[:] = [
         event for event in scheduled_events if event["title"] != title
     ]
+
 
 def keep_alive():
     scheduler.enter(10, 1, keep_alive)

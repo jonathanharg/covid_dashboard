@@ -51,9 +51,7 @@ schedule_update_with_same_name = {
     "two": "Same Name",
     "covid-data": "covid-data",
 }
-remove_update_with_same_name = {
-    "update_item": "Same Name"
-}
+remove_update_with_same_name = {"update_item": "Same Name"}
 schedule_update_with_no_covid_or_news = {"update": "12:30", "two": "Label"}
 requests = [
     remove_nonexisting_event,
@@ -65,7 +63,7 @@ requests = [
     schedule_update_with_same_name,
     schedule_update_with_same_name,
     remove_update_with_same_name,
-    remove_update_with_same_name
+    remove_update_with_same_name,
 ]
 
 

@@ -12,9 +12,8 @@ DEFAULT_CONFIG = {
     "api_key": "INSERT-API-KEY-HERE",
 }
 
-# TODO: Actually read config file
+
 def get_config(*keys):
-    # TODO: Create default_config.json, copy default_config.json to config.json if it does not exist
     # TODO: Error handling etc.
     try:
         with open("config.json") as file:
@@ -46,6 +45,12 @@ def time_until(target_time):
     return time_delta
 
 
+def format_string(string):
+    if string is None:
+        return None
+    return "{:,}".format(string)
+
+
 def get_news_blacklist():
     try:
         with open("news-blacklist.json") as file:
@@ -70,12 +75,15 @@ class MLStripper(HTMLParser):
         super().__init__()
         self.reset()
         self.strict = False
-        self.convert_charrefs= True
+        self.convert_charrefs = True
         self.text = StringIO()
+
     def handle_data(self, d):
         self.text.write(d)
+
     def get_data(self):
         return self.text.getvalue()
+
 
 def sanitise_input(html):
     s = MLStripper()

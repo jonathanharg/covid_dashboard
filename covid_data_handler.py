@@ -1,8 +1,5 @@
 from uk_covid19 import Cov19API
 import requests
-import sched
-import time
-
 import uk_covid19
 
 # TODO: ANNOTATE ALL FUNCTIONS e.g. def func(var: str) -> int
@@ -45,7 +42,6 @@ def process_covid_csv_data(covid_csv_data):
     deaths_column = column_titles.index("cumDailyNsoDeathsByDeathDate")
     hospital_cases_column = column_titles.index("hospitalCases")
     new_cases_column = column_titles.index("newCasesBySpecimenDate")
-
 
     # Split each line after the first by ","
     data = []
@@ -103,9 +99,9 @@ def first_value(rows, column):
     result = None
     for row in rows:
         if row[column] not in [None, ""]:
-            result = row[column]
+            result = int(row[column])
             break
-    return int(result)
+    return result
 
 
 # TODO: Handle no internet, failed API request
@@ -133,7 +129,6 @@ def covid_API_request(location="Exeter", location_type="ltla"):
 
     try:
         api = Cov19API(filters=location_filter, structure=data_structure)
-        # TODO: Q: Is it okay just to return dictionary of json data?
         response = api.get_json()
         return response
     except uk_covid19.exceptions.FailedRequestError:
@@ -155,6 +150,7 @@ def get_covid_data(location, nation, location_type="ltla", force_update=False):
         internal_covid_data["data"] = update_covid_data(location, nation, location_type)
     return internal_covid_data["data"]
 
+
 def update_covid_data(location, nation, location_type="ltla"):
     """Get local and national COVID data
 
@@ -169,26 +165,30 @@ def update_covid_data(location, nation, location_type="ltla"):
         int: National hospital cases
         int: National total deaths
     """
-    local_data = covid_API_request(location, location_type)
-    nation_data = covid_API_request(nation, "Nation")
+    local = covid_API_request(location, location_type)
+    national = covid_API_request(nation, "Nation")
 
-    if local_data is not None:
-        local_7day_infections = sum_7days(local_data["data"], "newCasesBySpecimenDate")
-    else:
-        local_7day_infections = None
+    # try:
+    local_7day = sum_7days(local["data"], "newCasesBySpecimenDate")
+    # except ValueError:
+    #     local_7day = None
 
-    if nation_data is not None:
-        national_7day_infections = sum_7days(
-            nation_data["data"], "newCasesBySpecimenDate"
-        )
-        hospital_cases = first_value(nation_data["data"], "hospitalCases")
-        deaths_total = first_value(nation_data["data"], "cumDailyNsoDeathsByDeathDate")
-    else:
-        national_7day_infections = None
-        hospital_cases = None
-        deaths_total = None
-    return local_7day_infections, national_7day_infections, hospital_cases, deaths_total
+    # try:
+    national_7day = sum_7days(national["data"], "newCasesBySpecimenDate")
+    hospital = first_value(national["data"], "hospitalCases")
+    deaths = first_value(national["data"], "cumDailyNsoDeathsByDeathDate")
+    # except ValueError:
+    #     national_7day = None
+    #     hospital = None
+    #     deaths = None
 
+    covid_data = {
+        "local_7day": local_7day,
+        "national_7day": national_7day,
+        "hospital": hospital,
+        "deaths": deaths,
+    }
+    return covid_data
 
 
 # schedule = sched.scheduler(time.time, time.sleep)
@@ -196,5 +196,6 @@ def schedule_covid_updates(update_interval, update_name):
     # Use `sched` module to schedule updates to the covid data at the given time interval
     # schedule.enter(time.time + , 1, )
     return
+
 
 process_covid_csv_data(parse_csv_data("nation_2021-10-28.csv"))

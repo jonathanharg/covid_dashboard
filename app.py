@@ -26,7 +26,7 @@ from scheduler import (
 )
 from covid_data_handler import get_covid_data
 from covid_news_handling import get_news, update_news, remove_article
-from utils import get_config, time_until
+from utils import get_config, time_until, format_string
 
 
 CLOCK_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clock' viewBox='0 0 16 16'><path d='M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z'/><path d='M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z'/></svg>"
@@ -77,30 +77,23 @@ def create_app(testing=False):
         # TODO: Format news article titles?? (might mess with deletion function) and descriptions to include link to read more
         news_articles = get_news()
 
-        (
-            local_7day_infections,
-            national_7day_infections,
-            hospital_cases,
-            deaths_total,
-        ) = get_covid_data(location, nation)
+        covid_data = get_covid_data(location, nation)
 
         # Format Strings
         title = Markup(f"<strong>{title}</strong>")
         location = Markup(f"<strong>{location}</strong>")
         nation_location = Markup(f"<strong>{nation}</strong>")
-        local_7day_infections = (
-            f"{local_7day_infections if local_7day_infections is not None else 0:,}"
-        )
-        national_7day_infections = f"{national_7day_infections if national_7day_infections is not None else 0:,}"
+        local_7day_infections = format_string(covid_data["local_7day"])
+        national_7day_infections = format_string(covid_data["national_7day"])
         hospital_cases = Markup(
-            f"{HOSPITAL_ICON} {hospital_cases if hospital_cases is not None else 0:,} hospital cases"
+            f"{HOSPITAL_ICON} {format_string(covid_data['hospital'])} hospital cases"
         )
         deaths_total = Markup(
-            f"{DEATHS_ICON} {deaths_total if deaths_total is not None else 0:,} total deaths "
+            f"{DEATHS_ICON} {format_string(covid_data['deaths'])} total deaths "
         )
 
         for article in news_articles:
-            time = datetime.strptime(article['publishedAt'],"%Y-%m-%dT%H:%M:%S%z")
+            time = datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%S%z")
             article["content"] = Markup(
                 f"<u>{time.strftime('%I:%M %p %d/%m/%y')}</u><br>{article['description']} <a href='{article['url']}' target='_blank'>Read More</a>"
             )

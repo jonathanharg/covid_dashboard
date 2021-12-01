@@ -1,7 +1,7 @@
 import requests
 from utils import get_config, get_news_blacklist, blacklist, sanitise_input
 
-news = None
+news = []
 
 
 def news_API_request(covid_terms="Covid COVID-19 coronavirus"):
@@ -16,17 +16,17 @@ def news_API_request(covid_terms="Covid COVID-19 coronavirus"):
             print(f"Error, {response.status_code} - {response.reason}")
             if response.status_code == 401:
                 print("Have you supplied a valid NewsAPI.org API key in config.json?")
-            articles = None
+            articles = []
 
     except requests.exceptions.RequestException:
         print("NEWS REQUEST ERROR")
-        articles = None
+        articles = []
     return articles
 
 
 def get_news(covid_terms="Covid COVID-19 coronavirus"):
     global news
-    if news is None:
+    if news == []:
         news = update_news(covid_terms)
     return news
 
@@ -43,10 +43,14 @@ def update_news(covid_terms="Covid COVID-19 coronavirus"):
     if new_news is not None:
         for article in new_news:
             if article["title"] not in blacklist:
+                if article["title"] is not None:
+                    title = sanitise_input(article["title"])
+                if article["description"] is not None:
+                    description = sanitise_input(article["description"])
                 result.append(
                     {
-                        "title": sanitise_input(article["title"]),
-                        "description": sanitise_input(article["description"]),
+                        "title": title,
+                        "description": description,
                         "url": article["url"],
                         "publishedAt": article["publishedAt"],
                     }
