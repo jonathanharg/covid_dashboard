@@ -108,41 +108,6 @@ def first_value(rows, column):
     return int(result)
 
 
-def update_covid_data(location, nation, location_type="ltla"):
-    """Get local and national COVID data
-
-    Args:
-        location (str): Location name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
-        nation (str): Nation name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
-        location_type (str, optional): Location type either "overview", "nation", "region", "nhsRegion", "utla", or "ltla", for more information see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters. Defaults to "ltla".
-
-    Returns:
-        int: Local 7-day infections
-        int: National 7-day infections
-        int: National hospital cases
-        int: National total deaths
-    """
-    local_data = covid_API_request(location, location_type)
-    nation_data = covid_API_request(nation, "Nation")
-
-    if local_data is not None:
-        local_7day_infections = sum_7days(local_data["data"], "newCasesBySpecimenDate")
-    else:
-        local_7day_infections = None
-
-    if nation_data is not None:
-        national_7day_infections = sum_7days(
-            nation_data["data"], "newCasesBySpecimenDate"
-        )
-        hospital_cases = first_value(nation_data["data"], "hospitalCases")
-        deaths_total = first_value(nation_data["data"], "cumDailyNsoDeathsByDeathDate")
-    else:
-        national_7day_infections = None
-        hospital_cases = None
-        deaths_total = None
-    return local_7day_infections, national_7day_infections, hospital_cases, deaths_total
-
-
 # TODO: Handle no internet, failed API request
 def covid_API_request(location="Exeter", location_type="ltla"):
     """Returns latest COVID data from GOV.UK Coronavirus API as a dictionary
@@ -189,6 +154,41 @@ def get_covid_data(location, nation, location_type="ltla", force_update=False):
         internal_covid_data["nation"] = nation
         internal_covid_data["data"] = update_covid_data(location, nation, location_type)
     return internal_covid_data["data"]
+
+def update_covid_data(location, nation, location_type="ltla"):
+    """Get local and national COVID data
+
+    Args:
+        location (str): Location name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
+        nation (str): Nation name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
+        location_type (str, optional): Location type either "overview", "nation", "region", "nhsRegion", "utla", or "ltla", for more information see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters. Defaults to "ltla".
+
+    Returns:
+        int: Local 7-day infections
+        int: National 7-day infections
+        int: National hospital cases
+        int: National total deaths
+    """
+    local_data = covid_API_request(location, location_type)
+    nation_data = covid_API_request(nation, "Nation")
+
+    if local_data is not None:
+        local_7day_infections = sum_7days(local_data["data"], "newCasesBySpecimenDate")
+    else:
+        local_7day_infections = None
+
+    if nation_data is not None:
+        national_7day_infections = sum_7days(
+            nation_data["data"], "newCasesBySpecimenDate"
+        )
+        hospital_cases = first_value(nation_data["data"], "hospitalCases")
+        deaths_total = first_value(nation_data["data"], "cumDailyNsoDeathsByDeathDate")
+    else:
+        national_7day_infections = None
+        hospital_cases = None
+        deaths_total = None
+    return local_7day_infections, national_7day_infections, hospital_cases, deaths_total
+
 
 
 # schedule = sched.scheduler(time.time, time.sleep)
