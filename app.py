@@ -1,22 +1,17 @@
 """ Handles front-end web requests, scheduling, and makes calles to back end data/news handlers"""
 
-# TODO: TEST INVALID VALUES, e.g. "location": "Wimbledon", "nation": "Kazakhstan",
-# TODO: LOGGING
-# TODO: Clean up code
-# TODO: readme
-# TODO: default updates in config
+# TODO: logging
+# TODO: fix scheduling
 # TODO: repeating update not moving to end of list after repeat
-# TODO: MAKE SURE NO REPEATING UPDATES ARE REMOVED
-# TODO: ANNOTATE ALL FUNCTIONS e.g. def func(var: str)
+# TODO: default updates in config
+# TODO: clean up code
+# TODO: type hinting
+# TODO: docstrings
+# TODO: readme
 
-# ? News Behaviour on Removal
-# ? Threading
-# ? news data handler name & general file structure, main app name
-# ? covid_data_handler schedule_covid_update
-
-from flask import Flask, render_template, Markup, request, redirect
 from datetime import datetime, timedelta
 import threading
+from flask import Flask, render_template, Markup, request, redirect
 from scheduler import (
     scheduler,
     scheduled_events,
@@ -29,10 +24,28 @@ from covid_news_handling import get_news, update_news, remove_article
 from utils import get_config, time_until, format_string
 
 
-CLOCK_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-clock' viewBox='0 0 16 16'><path d='M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z'/><path d='M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z'/></svg>"
-HOSPITAL_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-thermometer-half' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8 1z'/></svg>"
+CLOCK_ICON = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor'"
+    " class='bi bi-clock' viewBox='0 0 16 16'><path d='M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0"
+    " 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z'/><path d='M8 16A8 8 0 1 0 8"
+    " 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z'/></svg>"
+)
+HOSPITAL_ICON = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor'"
+    " class='bi bi-thermometer-half' viewBox='0 0 16 16'><path d='M9.5 12.5a1.5 1.5 0 1"
+    " 1-2-1.415V6.5a.5.5 0 0 1 1 0v4.585a1.5 1.5 0 0 1 1 1.415z'/><path d='M5.5 2.5a2.5"
+    " 2.5 0 0 1 5 0v7.55a3.5 3.5 0 1 1-5 0V2.5zM8 1a1.5 1.5 0 0 0-1.5"
+    " 1.5v7.987l-.167.15a2.5 2.5 0 1 0 3.333 0l-.166-.15V2.5A1.5 1.5 0 0 0 8"
+    " 1z'/></svg>"
+)
 # DEATHS_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' fill='currentColor' class='bi bi-emoji-dizzy' viewBox='0 0 16 16'><path d='M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z'/><path d='M9.146 5.146a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 0 1 .708.708l-.647.646.647.646a.5.5 0 0 1-.708.708l-.646-.647-.646.647a.5.5 0 1 1-.708-.708l.647-.646-.647-.646a.5.5 0 0 1 0-.708zm-5 0a.5.5 0 0 1 .708 0l.646.647.646-.647a.5.5 0 1 1 .708.708l-.647.646.647.646a.5.5 0 1 1-.708.708L5.5 7.207l-.646.647a.5.5 0 1 1-.708-.708l.647-.646-.647-.646a.5.5 0 0 1 0-.708zM10 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0z'/></svg>"
-DEATHS_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-activity' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M6 2a.5.5 0 0 1 .47.33L10 12.036l1.53-4.208A.5.5 0 0 1 12 7.5h3.5a.5.5 0 0 1 0 1h-3.15l-1.88 5.17a.5.5 0 0 1-.94 0L6 3.964 4.47 8.171A.5.5 0 0 1 4 8.5H.5a.5.5 0 0 1 0-1h3.15l1.88-5.17A.5.5 0 0 1 6 2Z'/></svg>"
+DEATHS_ICON = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor'"
+    " class='bi bi-activity' viewBox='0 0 16 16'><path fill-rule='evenodd' d='M6 2a.5.5"
+    " 0 0 1 .47.33L10 12.036l1.53-4.208A.5.5 0 0 1 12 7.5h3.5a.5.5 0 0 1 0"
+    " 1h-3.15l-1.88 5.17a.5.5 0 0 1-.94 0L6 3.964 4.47 8.171A.5.5 0 0 1 4 8.5H.5a.5.5 0"
+    " 0 1 0-1h3.15l1.88-5.17A.5.5 0 0 1 6 2Z'/></svg>"
+)
 NEW_ICON = "<span class='badge badge-primary'>New</span>"
 
 
@@ -74,7 +87,6 @@ def create_app(testing=False):
             "favicon", "image", "title", "location", "nation"
         )
 
-        # TODO: Format news article titles?? (might mess with deletion function) and descriptions to include link to read more
         news_articles = get_news()
 
         covid_data = get_covid_data(location, nation)
@@ -95,7 +107,8 @@ def create_app(testing=False):
         for article in news_articles:
             time = datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%S%z")
             article["content"] = Markup(
-                f"<u>{time.strftime('%I:%M %p %d/%m/%y')}</u><br>{article['description']} <a href='{article['url']}' target='_blank'>Read More</a>"
+                f"<u>{time.strftime('%I:%M %p %d/%m/%y')}</u><br>{article['description']} <a"
+                f" href='{article['url']}' target='_blank'>Read More</a>"
             )
 
         for update in scheduled_events:
@@ -107,9 +120,7 @@ def create_app(testing=False):
                 types.append("<strong>COVID data</strong>")
             if update["news"] is True:
                 types.append("<strong>news</strong>")
-            updating = (
-                " and ".join(types) if types != [] else "<strong>nothing</strong>"
-            )
+            updating = " and ".join(types) if types else "<strong>nothing</strong>"
             time = update["target_time"]
             time_to = str(time_until(time))
             new = ""
@@ -117,13 +128,12 @@ def create_app(testing=False):
                 update["new"] = False
                 new = "<br>" + NEW_ICON
             update["content"] = Markup(
-                f"{CLOCK_ICON} <u>{time.seconds//3600:02d}:{(time.seconds//60)%60:02d}</u><br>{repeating} for {updating} in {time_to} {new}"
-                ""
+                f"{CLOCK_ICON} <u>{time.seconds//3600:02d}:{(time.seconds//60)%60:02d}</u><br>{repeating} for"
+                f" {updating} in {time_to} {new}"
             )
 
         # Render data with ./templates/index.html
 
-        # TODO: MAke this into templateVariables dict and then call with render_template("index.html", **templateVariables)
         return render_template(
             "index.html",
             favicon=favicon,
@@ -142,7 +152,6 @@ def create_app(testing=False):
     @app.route("/index")
     def index():
         # Handle Inputs
-        # TODO: Verify all inputs are valid and sane
         # Handle Remove Scheduled Event Request
         if "update_item" in request.args:
             title = request.args.get("update_item")
@@ -157,8 +166,6 @@ def create_app(testing=False):
             remove_article(title)
 
         # Handle Request to Schedule New Event
-        # TODO: Handle missing data, e.g. no title, update, name etc.
-        # TODO: Validate time string
         if "update" in request.args:
             label = request.args.get("two")
             # Change request arguments to booleans

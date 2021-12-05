@@ -5,7 +5,6 @@ news = []
 
 
 def news_API_request(covid_terms="Covid COVID-19 coronavirus"):
-    # TODO: Handle Error
     api_key = get_config("api_key")
     url = f"https://newsapi.org/v2/everything?q={covid_terms}&apiKey={api_key}&sortBy=PublishedAt&pageSize=100&language=en"
     try:

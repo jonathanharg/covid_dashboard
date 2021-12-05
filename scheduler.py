@@ -13,7 +13,8 @@ def schedule_event(target_time, label, repeat, data, news, new=True):
     if not label_exists:
         time_delta = time_until(target_time)
         print(
-            f"SCHED: New event {label} at {target_time} (in {time_delta}) [{'repeat' if repeat else ''} {'data' if data else ''} {'news' if news else ''}]"
+            f"SCHED: New event {label} at {target_time} (in {time_delta})"
+            f" [{'repeat' if repeat else ''} {'data' if data else ''} {'news' if news else ''}]"
         )
         sched_event = scheduler.enter(
             time_delta.seconds, 1, call_event, (label, target_time, repeat, data, news)
@@ -29,11 +30,20 @@ def schedule_event(target_time, label, repeat, data, news, new=True):
             "new": new,
         }
 
+        print("-----------")
+        print(scheduled_events)
         # Insert in time order
-        if scheduled_events == []:
+        if not scheduled_events:
             scheduled_events.append(new_event)
         else:
             for index, event in enumerate(scheduled_events):
+                print(f"Target Time: {time_until(target_time)}")
+                print(f"Ith Time: {time_until(event['target_time'])}")
+                print(
+                    "Eval:"
+                    f" {time_until(target_time) < time_until(event['target_time'])}"
+                )
+
                 if time_until(target_time) < time_until(event["target_time"]):
                     scheduled_events.insert(index, new_event)
                     break

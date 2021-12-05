@@ -2,7 +2,6 @@ from uk_covid19 import Cov19API
 import requests
 import uk_covid19
 
-# TODO: ANNOTATE ALL FUNCTIONS e.g. def func(var: str) -> int
 internal_covid_data = {"location": None, "nation": None, "data": None}
 
 
@@ -36,7 +35,7 @@ def process_covid_csv_data(covid_csv_data):
             current_hospitcal_cases(int): Current number of hospital cases
             cumulative_deaths(int): Total deaths
     """
-    # TODO: REDO SO IT DOES NOT ASSUME LINE NOS
+
     # Assign each csv row title its corresponding list index
     column_titles = covid_csv_data[0].split(",")
     deaths_column = column_titles.index("cumDailyNsoDeathsByDeathDate")
@@ -104,7 +103,6 @@ def first_value(rows, column):
     return result
 
 
-# TODO: Handle no internet, failed API request
 def covid_API_request(location="Exeter", location_type="ltla"):
     """Returns latest COVID data from GOV.UK Coronavirus API as a dictionary
 

@@ -14,7 +14,6 @@ DEFAULT_CONFIG = {
 
 
 def get_config(*keys):
-    # TODO: Error handling etc.
     try:
         with open("config.json") as file:
             config = json.load(file)
@@ -48,7 +47,7 @@ def time_until(target_time):
 def format_string(string):
     if string is None:
         return None
-    return "{:,}".format(string)
+    return f"{string:,}"
 
 
 def get_news_blacklist():
@@ -86,6 +85,6 @@ class MLStripper(HTMLParser):
 
 
 def sanitise_input(html):
-    s = MLStripper()
-    s.feed(html)
-    return s.get_data()
+    sanitiser = MLStripper()
+    sanitiser.feed(html)
+    return sanitiser.get_data()
