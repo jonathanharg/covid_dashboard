@@ -1,6 +1,6 @@
 from covid_data_handler import parse_csv_data
 from covid_data_handler import process_covid_csv_data
-from covid_data_handler import covid_API_request
+from covid_data_handler import covid_api_request
 from covid_data_handler import schedule_covid_updates
 
 
@@ -18,8 +18,8 @@ def test_process_covid_csv_data():
     assert total_deaths == 141_544
 
 
-def test_covid_API_request():
-    data = covid_API_request()
+def test_covid_api_request():
+    data = covid_api_request()
     assert isinstance(data, dict)
 
 

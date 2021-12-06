@@ -1,41 +1,51 @@
 import requests
 from utils import get_config, get_news_blacklist, blacklist, sanitise_input
+import logging
 
 news = []
-
+log = logging.getLogger("covid_dashboard")
 
 def news_API_request(covid_terms="Covid COVID-19 coronavirus"):
+    log.info("Making NewsAPI.org request")
     api_key = get_config("api_key")
     url = f"https://newsapi.org/v2/everything?q={covid_terms}&apiKey={api_key}&sortBy=PublishedAt&pageSize=100&language=en"
     try:
         response = requests.get(url)
         if response.status_code == 200:
+            log.info("Recieved response from NewsAPI.org")
             articles = response.json()["articles"]
         else:
-            print(f"Error, {response.status_code} - {response.reason}")
+            log.error(
+                f"NewsAPI.org request failed, {response.status_code} -"
+                f" {response.reason}"
+            )
             if response.status_code == 401:
-                print("Have you supplied a valid NewsAPI.org API key in config.json?")
+                log.warning(
+                    "Have you supplied a valid NewsAPI.org API key in config.json?"
+                )
             articles = []
 
     except requests.exceptions.RequestException:
-        print("NEWS REQUEST ERROR")
+        log.error("RequestException for NewsAPI.org request")
         articles = []
     return articles
 
 
-def get_news(covid_terms="Covid COVID-19 coronavirus"):
+def get_news(covid_terms="Covid COVID-19 coronavirus", force_update=False):
     global news
+    log.info(f"Reqest to get news with {covid_terms = }")
     if news == []:
-        news = update_news(covid_terms)
+        log.info("No cached news exists")
+    elif force_update:
+        log.info("Forcing NewsAPI update")
+    else:
+        log.info("Using cached news data")
+        return news
+    news = update_news(covid_terms)
     return news
 
 
 def update_news(covid_terms="Covid COVID-19 coronavirus"):
-    # use news_API_request() within function
-    # update a data structure containing news articles.
-    # integrate this with scheduled updates
-    # NOTE: news should be update on a different interval than covid data
-    # NOTE: There is a way to remove articles that you have seen from the interface, which should not reappear
     result = []
     blacklist = get_news_blacklist()
     new_news = news_API_request(covid_terms)
@@ -58,6 +68,7 @@ def update_news(covid_terms="Covid COVID-19 coronavirus"):
 
 
 def remove_article(title):
+    log.info(f"Removing article {title = }")
     global news
     news[:] = [article for article in news if article["title"] != title]
     blacklist(title)

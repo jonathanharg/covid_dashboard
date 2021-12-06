@@ -1,7 +1,10 @@
+import logging
 from uk_covid19 import Cov19API
 import requests
 import uk_covid19
 
+log = logging.getLogger("covid_dashboard")
+log.info("Initialising empty internal covid data")
 internal_covid_data = {"location": None, "nation": None, "data": None}
 
 
@@ -14,6 +17,7 @@ def parse_csv_data(csv_filename: str) -> list:
     Returns:
         rows (list[str]): list of csv row strings
     """
+    log.info(f"Parsing csv data in {csv_filename}")
     rows = []
     with open(csv_filename, encoding="utf-8") as data:
         file = data.read()
@@ -37,6 +41,7 @@ def process_covid_csv_data(covid_csv_data):
     """
 
     # Assign each csv row title its corresponding list index
+    log.info("Processing csv data")
     column_titles = covid_csv_data[0].split(",")
     deaths_column = column_titles.index("cumDailyNsoDeathsByDeathDate")
     hospital_cases_column = column_titles.index("hospitalCases")
@@ -103,7 +108,7 @@ def first_value(rows, column):
     return result
 
 
-def covid_API_request(location="Exeter", location_type="ltla"):
+def covid_api_request(location="Exeter", location_type="ltla"):
     """Returns latest COVID data from GOV.UK Coronavirus API as a dictionary
 
     For more info see https://publichealthengland.github.io/coronavirus-dashboard-api-python-sdk/
@@ -115,7 +120,7 @@ def covid_API_request(location="Exeter", location_type="ltla"):
     Returns:
         dict: Response data
     """
-
+    log.info(f"Making COVID19 API request for {location = } and {location_type = }")
     location_filter = ["areaType=" + location_type, "areaName=" + location]
 
     data_structure = {
@@ -128,24 +133,39 @@ def covid_API_request(location="Exeter", location_type="ltla"):
     try:
         api = Cov19API(filters=location_filter, structure=data_structure)
         response = api.get_json()
+        log.info("Received COVID19 API response")
         return response
     except uk_covid19.exceptions.FailedRequestError:
+        log.error("FailedRequestError from COVID19 API request")
         return None
     except requests.exceptions.RequestException:
+        log.error("RequestException from COVID19 API request")
         return None
 
 
 def get_covid_data(location, nation, location_type="ltla", force_update=False):
     # IF LOCATION/NATION HAS CHANGED OR DATA IS NONE UPDATE_COVID_DATA
-    if (
-        (internal_covid_data["location"] != location)
-        | (internal_covid_data["nation"] != nation)
-        | (internal_covid_data["data"] is None)
-        | force_update
-    ):
-        internal_covid_data["location"] = location
-        internal_covid_data["nation"] = nation
-        internal_covid_data["data"] = update_covid_data(location, nation, location_type)
+    log.info("Getting COVID data")
+    if internal_covid_data["location"] != location:
+        log.info(
+            f"Cached location {internal_covid_data['location']} does not match"
+            f" requested location {location}"
+        )
+    elif internal_covid_data["nation"] != nation:
+        log.info(
+            f"Cached nation {internal_covid_data['nation']} does not match requested"
+            f" nation {nation}"
+        )
+    elif internal_covid_data["data"] is None:
+        log.info(f"No cached data exists for {location}, {nation}")
+    elif force_update:
+        log.info("Forcing an update of COVID data")
+    else:
+        log.info(f"Using cached COVID data for {location}, {nation}")
+        return internal_covid_data["data"]
+    internal_covid_data["location"] = location
+    internal_covid_data["nation"] = nation
+    internal_covid_data["data"] = update_covid_data(location, nation, location_type)
     return internal_covid_data["data"]
 
 
@@ -163,22 +183,20 @@ def update_covid_data(location, nation, location_type="ltla"):
         int: National hospital cases
         int: National total deaths
     """
-    local = covid_API_request(location, location_type)
-    national = covid_API_request(nation, "Nation")
+    local = covid_api_request(location, location_type)
+    national = covid_api_request(nation, "Nation")
 
-    # try:
-    local_7day = sum_7days(local["data"], "newCasesBySpecimenDate")
-    # except ValueError:
-    #     local_7day = None
+    try:
+        local_7day = sum_7days(local["data"], "newCasesBySpecimenDate")
+    except TypeError:
+        local_7day = None
 
-    # try:
-    national_7day = sum_7days(national["data"], "newCasesBySpecimenDate")
-    hospital = first_value(national["data"], "hospitalCases")
-    deaths = first_value(national["data"], "cumDailyNsoDeathsByDeathDate")
-    # except ValueError:
-    #     national_7day = None
-    #     hospital = None
-    #     deaths = None
+    try:
+        national_7day = sum_7days(national["data"], "newCasesBySpecimenDate")
+        hospital = first_value(national["data"], "hospitalCases")
+        deaths = first_value(national["data"], "cumDailyNsoDeathsByDeathDate")
+    except TypeError:
+        national_7day = hospital = deaths = None
 
     covid_data = {
         "local_7day": local_7day,
@@ -194,6 +212,3 @@ def schedule_covid_updates(update_interval, update_name):
     # Use `sched` module to schedule updates to the covid data at the given time interval
     # schedule.enter(time.time + , 1, )
     return
-
-
-process_covid_csv_data(parse_csv_data("nation_2021-10-28.csv"))
