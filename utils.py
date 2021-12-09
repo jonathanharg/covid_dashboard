@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timedelta
 from io import StringIO
 from html.parser import HTMLParser
+from typing import List, Tuple, Union
 
 DEFAULT_CONFIG = {
     "favicon": "/static/images/fish.gif",
@@ -15,6 +16,7 @@ DEFAULT_CONFIG = {
 log = logging.getLogger("covid_dashboard")
 
 
+# def get_config(*keys) -> Union[List[str], str, Tuple[str, str], Tuple[str]]:
 def get_config(*keys):
     try:
         with open("config.json") as file:
@@ -42,13 +44,13 @@ def get_config(*keys):
     return result
 
 
-def time_difference(target_time):
+def time_delay(target_time: timedelta) -> timedelta:
     now = datetime.now()
-    current_time = timedelta(hours=now.hour, minutes=now.minute, seconds=now.second)
-    return target_time - current_time
+    current_time = timedelta(hours=now.hour, minutes=now.minute, seconds=now.second, milliseconds=now.microsecond * 1000)
+    return  current_time - current_time
 
 
-def time_until(target_time):
+def time_until(target_time: timedelta) -> timedelta:
     now = datetime.now()
     current_time = timedelta(hours=now.hour, minutes=now.minute, seconds=now.second)
 
@@ -63,6 +65,7 @@ def time_until(target_time):
 
 
 
+# def get_news_blacklist() -> List[str]:
 def get_news_blacklist():
     try:
         with open("news-blacklist.json") as file:
@@ -86,21 +89,21 @@ def blacklist(title):
 
 # from https://stackoverflow.com/questions/753052/strip-html-from-strings-in-python
 class MLStripper(HTMLParser):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.reset()
         self.strict = False
         self.convert_charrefs = True
         self.text = StringIO()
 
-    def handle_data(self, d):
+    def handle_data(self, d: str) -> None:
         self.text.write(d)
 
-    def get_data(self):
+    def get_data(self) -> str:
         return self.text.getvalue()
 
 
-def sanitise_input(html):
+def sanitise_input(html: str) -> str:
     sanitiser = MLStripper()
     sanitiser.feed(html)
     return sanitiser.get_data()

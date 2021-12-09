@@ -1,7 +1,7 @@
 import sched
 import time
 import logging
-from utils import time_until, time_difference, get_config
+from utils import time_until, time_delay, get_config
 from covid_data_handler import get_covid_data
 from covid_news_handling import update_news
 
@@ -45,7 +45,7 @@ def schedule_event(target_time, label, repeat, data, news, new=True):
                 # )
 
                 if time_until(target_time) < time_until(event["target_time"]):
-                    log.info(f"Inserting {label} at {index = } of scheduled_events")
+                    # log.info(f"Inserting {label} at {index = } of scheduled_events")
                     scheduled_events.insert(index, new_event)
                     break
                 elif index == len(scheduled_events) - 1:
@@ -60,7 +60,7 @@ def call_event(label, target_time, repeat, data, news):
     log.info(
         f"Running scheduled event {label} with {repeat = } for {data = } and {news = }"
     )
-    log.info(f"This event is running {time_difference(target_time)} schedule")
+    log.info(f"This event is running {time_delay(target_time)} behind schedule")
 
     remove_event(label)
     if data:
@@ -84,4 +84,4 @@ def remove_event(title):
 
 def keep_alive():
     scheduler.enter(10, 1, keep_alive)
-    # print(":)")
+    print(":)")
