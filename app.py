@@ -3,10 +3,6 @@
 Attributes:
     log (Logger): The logger for the covid_dashboard.
 """
-# TODO: readme
-# TODO: tests
-# TODO: Sphinx
-
 from datetime import datetime, timedelta
 import threading
 import logging
@@ -54,8 +50,7 @@ logging.basicConfig(
 log = logging.getLogger("covid_dashboard")
 
 
-def create_app(testing: bool=False) -> Flask:
-    thread = threading.Thread(target=scheduler.run)
+def create_app(testing: bool = False) -> Flask:
     """Create the covid_dashboard flask app.
 
     Args:
@@ -64,11 +59,17 @@ def create_app(testing: bool=False) -> Flask:
     Returns:
         Flask: the covid_dashboard flask app.
     """
+    thread = threading.Thread(target=scheduler.run)
     flask_app = Flask(__name__)
     flask_app.testing = testing
-    log.info("Creating covid_dashboard flask app %s with testing = %s", __name__, testing)
+    log.info(
+        "Creating covid_dashboard flask app %s with testing = %s", __name__, testing
+    )
 
-    location, nation = get_settings("location", "nation") # pylint: disable=unbalanced-tuple-unpacking
+    # pylint: disable=W0632
+    location, nation = get_settings(
+        "location", "nation"
+    )
 
     # update_news()
     get_news(force_update=True)
@@ -100,7 +101,14 @@ def create_app(testing: bool=False) -> Flask:
         # GET PAGE VARIABLES & CONTENT
         log.info("Requested /")
 
-        favicon, image, title, location, nation = get_settings( # pylint: disable=unbalanced-tuple-unpacking
+        # pylint: disable=unbalanced-tuple-unpacking
+        (
+            favicon,
+            image,
+            title,
+            location,
+            nation,
+        ) = get_settings(
             "favicon", "image", "title", "location", "nation"
         )
 
@@ -113,25 +121,39 @@ def create_app(testing: bool=False) -> Flask:
         title = Markup(f"<strong>{title}</strong>")
         location = Markup(f"<strong>{location}</strong>")
         nation_location = Markup(f"<strong>{nation}</strong>")
+        # pylint: disable=E1136
+        # pylint: disable=E1136
         local_7day_infections = (
             None
-            if covid_data["local_7day"] is None # pylint: disable=unsubscriptable-object
-            else f"{covid_data['local_7day']:,}"  # pylint: disable=unsubscriptable-object
+            if covid_data["local_7day"]
+            is None
+            else f"{covid_data['local_7day']:,}"
         )
+        # pylint: disable=E1136
+        # pylint: disable=E1136
         national_7day_infections = (
             None
-            if covid_data["national_7day"] is None # pylint: disable=unsubscriptable-object
-            else f"{covid_data['national_7day']:,}" # pylint: disable=unsubscriptable-object
+            if covid_data["national_7day"]
+            is None
+            else f"{covid_data['national_7day']:,}"
         )
+        # pylint: disable=E1136
+        # pylint: disable=E1136
         hospital_cases = (
             None
-            if covid_data["hospital"] is None # pylint: disable=unsubscriptable-object
-            else Markup(f"{HOSPITAL_ICON} {covid_data['hospital']:,} hospital cases") # pylint: disable=unsubscriptable-object
+            if covid_data["hospital"] is None
+            else Markup(
+                f"{HOSPITAL_ICON} {covid_data['hospital']:,} hospital cases"
+            )
         )
+        # pylint: disable=E1136
+        # pylint: disable=E1136
         deaths_total = (
             None
-            if covid_data["deaths"] is None # pylint: disable=unsubscriptable-object
-            else Markup(f"{DEATHS_ICON} {covid_data['deaths']:,} total deaths") # pylint: disable=unsubscriptable-object
+            if covid_data["deaths"] is None
+            else Markup(
+                f"{DEATHS_ICON} {covid_data['deaths']:,} total deaths"
+            )
         )
 
         for article in news_articles:
@@ -213,7 +235,9 @@ def create_app(testing: bool=False) -> Flask:
             supplied_time = request.args.get("update")
             # Make sure an event with the same title does not exist
             if any(event["title"] == label for event in scheduled_events):
-                log.warning("An event with the name %s already exists! Ignoring!",label)
+                log.warning(
+                    "An event with the name %s already exists! Ignoring!", label
+                )
             # Make sure either data or news is being updated
             elif data or news:
                 try:
@@ -223,11 +247,15 @@ def create_app(testing: bool=False) -> Flask:
 
                     schedule_event(time, label, repeat, data, news)
                 except ValueError:
-                    log.error("Supplied time %s does not match the format %%H:%%M", supplied_time)
+                    log.error(
+                        "Supplied time %s does not match the format %%H:%%M",
+                        supplied_time,
+                    )
             else:
                 log.warning(
                     "New event %s either already exists or does not request a"
-                    " news or data update", label
+                    " news or data update",
+                    label,
                 )
 
         # Redirect user back to root URL to stop form being submitted again on a page reload
