@@ -1,7 +1,11 @@
-from covid_data_handler import parse_csv_data
-from covid_data_handler import process_covid_csv_data
-from covid_data_handler import covid_api_request
-from covid_data_handler import schedule_covid_updates
+from covid_data_handler import (
+    get_covid_data,
+    parse_csv_data,
+    process_covid_csv_data,
+    covid_api_request,
+    schedule_covid_updates,
+    update_covid_data,
+)
 
 
 def test_parse_csv_data():
@@ -25,3 +29,11 @@ def test_covid_api_request():
 
 def test_schedule_covid_updates():
     schedule_covid_updates(update_interval=10, update_name="update test")
+
+
+def test_get_covid_data():
+    assert get_covid_data("Exeter", "England")
+
+
+def test_update_covid_data():
+    assert update_covid_data("Exeter", "England")

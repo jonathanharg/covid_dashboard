@@ -71,11 +71,13 @@ def test_input_sequence(client, requests):
 
 # TEST FAVICON, TEST IMAGE
 
+
 def test_favicon(client):
     favicon = get_setting("favicon")
     response = client.get(favicon)
     assert response.status_code in [200, 302]
 
+
 def test_image(client):
     image = get_setting("image")
-    response = client.get('/static/images/' + image)
+    response = client.get("/static/images/" + image)
