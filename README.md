@@ -1,4 +1,4 @@
-# COVID Dashboard <img src="static/images/fish.gif" width="50" height="50">
+# [COVID Dashboard](https://https://github.com/jonathanharg/covid_dashboard) <img src="static/images/fish.gif" width="50" height="50">
 
 ### What _COVID_DASHBOARD_ does...
 
