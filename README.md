@@ -1,24 +1,88 @@
-# ECM1400 Programming Continuous Assessment
+# COVID Dashboard
 
-- [ ] Configuration File - api keys, user credentials, configuratio ninformation, location update intervals, filepaths for application resources, should be stored in a configuration file, create a `config.json` with all info for updating dashboard settings to run and personalise dashboard
-- [ ] Logging - log all events that happen in your smart alarm? and categorise different types of event[s] that may be treated in different ways, suchh as errors if the web services don't respond
-- [ ] Testing - Include unit testing for each functions, include a deployment test cycle, scheduling tests to regularly check the functionality of program, some sample tests are provided. Extend these tests and test your code using the `pytest` module
-- [ ] Distribution and Documentation - Host code publicly on github. Documentation for user and a developer. User must know how to deploy and use the system, developer must know how the code is structured, what it does and how to extend it.
+![icon](static/images/fish.gif)
+---
 
-## TODO
-- [ ] Make sure code matches specification, make tests for it?
-- [ ] Manual Code testing, try to break each function, think about edge cases
-- [ ] Optimisation, "speed test" code
-- [ ] Add logging
-- [ ] Add comments, docstrings
-- [ ] Package
+### What _COVID_DASHBOARD_ does...
 
-# Install
+* Provides a web-based dashboard for viewing COVID-19 statistics and news, all in one place.
+* Highly configurable, choose your own title, images, favicon and more!
+* Can be quickly setup to work for any location within the UK.
+* Easily extendible, with well structured and clearly documented code .
+* Get up and running in under two minutes!
 
-```bash
+### What you need...
+
+| Dependency | Version |
+| :--------- | ------: |
+| Python     |   3.8.9 |
+| Flask      |   2.0.2 |
+| pytest     |   6.2.5 |
+| requests   |  2.26.0 |
+| uk-covid19 |   1.2.2 |
+
+**Note.** everything but python can be automatically installed using `venv`.
+
+### How to get started...
+
+1. Open the folder you would like install the dashboard into in your terminal/command prompt and run
+
+```console
+    python -m venv .venv
+```
+
+to create a virutal environment. If you're on MacOS use `python3` instead
+
+```console
     python3 -m venv .venv
-    . .venv/bin/activate
+```
+
+2. Enter the python virtual environment
+
+```console
+    source .venv/bin/activate
+```
+
+on MacOS, or the following on Windows
+
+```console
+    .venv\bin\activate.bat
+```
+
+3. Now, in the virtual environment, run
+
+```console
     pip install -e .
     pip install -r requirements.txt
+```
+
+to install the dashboard and its dependencies.
+
+4. Run the dashboard for the first time with
+
+```console
     python app.py
 ```
+
+to generate a new `config.json` file.
+
+5. Modify `config.json` with your location, nation, and API key from NewsAPI.org.
+
+6. Restart the dashboard then visit <http://127.0.0.1:5000/> to view your local COVID data and news!
+
+### Development
+The dashboard was written with the idea of modification and tweaking in mind, so it should be fairly easy to extend it however you please.
+
+Format the code with
+```console
+    black filename.py
+```
+
+And make sure to run the tests with
+```console
+    pytest .
+```
+in the projects root directory.
+
+### License
+[The MIT License](LICENSE)

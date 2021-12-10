@@ -1,3 +1,4 @@
-Flask
-requests
-uk-covid19
+Flask==2.0.2
+pytest==6.2.5
+requests==2.26.0
+uk-covid19==1.2.2

@@ -1,23 +1,32 @@
+""" Caches and request COVID data from the GOV.UK Covid19 API
+
+Attributes:
+    internal_covid_data (dict): An internal cache for the latest
+        API request and its associated location and nation
+    log (Logger): The logger for the covid_dashboard.
+"""
+from typing import Optional, Union
+from datetime import timedelta
 import logging
-from uk_covid19 import Cov19API
 import requests
 import uk_covid19
+# from scheduler import schedule_event
 
 log = logging.getLogger("covid_dashboard")
 log.info("Initialising empty internal covid data")
-internal_covid_data = {"location": None, "nation": None, "data": None}
+internal_covid_data: dict = {"location": None, "nation": None, "data": None}
 
 
 def parse_csv_data(csv_filename: str) -> list:
     """Parses csv file into list of row strings.
 
     Args:
-        csv_filename (str): name or path of csv file to parse
+        csv_filename (str): name of or path to csv file to parse.
 
     Returns:
-        rows (list[str]): list of csv row strings
+        list[str]: list of csv row strings.
     """
-    log.info(f"Parsing csv data in {csv_filename}")
+    log.info("Parsing csv data in %s", csv_filename)
     rows = []
     with open(csv_filename, encoding="utf-8") as data:
         file = data.read()
@@ -27,19 +36,18 @@ def parse_csv_data(csv_filename: str) -> list:
     return rows
 
 
-def process_covid_csv_data(covid_csv_data):
-    """Proccess COVID csv data and calculate 7 day case total, current hospital cases, and total deaths.
+def process_covid_csv_data(covid_csv_data: list) -> tuple:
+    """Calculate the 7 day case total, current hospital cases, and total deaths.
 
     Args:
-        covid_csv_data (list[str]): List of csv row strings from the GOV.UK Coronavirus API
+        covid_csv_data (list): List of csv row strings from the GOV.UK COVID19 API.
 
     Returns:
-        (tuple): containing
-            cases_in_seven_days(int): Total cases in the last 7 days
-            current_hospitcal_cases(int): Current number of hospital cases
-            cumulative_deaths(int): Total deaths
+        tuple: containing,
+            cases_in_seven_days(int): Total cases in the last 7 days.
+            current_hospitcal_cases(int): Current number of hospital cases.
+            cumulative_deaths(int): Total deaths.
     """
-
     # Assign each csv row title its corresponding list index
     log.info("Processing csv data")
     column_titles = covid_csv_data[0].split(",")
@@ -59,16 +67,16 @@ def process_covid_csv_data(covid_csv_data):
     return (cases_in_seven_days, current_hospital_cases, cumulative_deaths)
 
 
-def sum_7days(days, key, skip_first=True) -> int:
-    """Iterate over and sum 7 days worth of a specified value.
+def sum_7days(days: list, key: Union[str, int], skip_first: bool = True) -> int:
+    """Iterates over and sums the first 7 days worth of a specified value.
 
     Args:
-        days (list): List of days, where each day contains "indexable" data
-        key: Index of data that should be summed, can be either an int for a list or a string for a dictionary
-        skip_first (bool, optional): If the first valid data value should be skipeed. Defaults to True.
+        days (list): List of days, where each day contains indexable data.
+        key (str | int): Index of data that should be summed.
+        skip_first (bool, optional): If first valid data value should be skipped. Defaults to True.
 
     Returns:
-        int: Summed total of specified data key over 7 days
+        int: Summed total of specified data key over 7 days.
     """
     total = 0
     limit = 8 if skip_first else 7
@@ -78,27 +86,28 @@ def sum_7days(days, key, skip_first=True) -> int:
         if index == limit:
             break
         # Otherwise, skip if the value is not valid AND we have not started summing yet
-        elif (day[key] in [None, ""]) & (index == 0):
+        if (day[key] in [None, ""]) & (index == 0):
             continue
         # Otherwise, skip the first valid value
-        elif index == 0 & skip_first:
+        if index == 0 & skip_first:
             index += 1
-        # Sum the value, even if it's not valid. This avoids a bug that would occur if one of the values included in the 7 day total is ""
+        # Sum the value, even if it's not valid. This avoids a bug that would occur if one of the
+        # values included in the 7 day total is an empty string
         else:
             total += int(day[key])
             index += 1
     return total
 
 
-def first_value(rows, column):
+def first_value(rows: list, column: Union[str, int]) -> Optional[int]:
     """Get the first valid value in a row.
 
     Args:
-        rows (list): Rows of data, where one of the rows has leading values are not valid
-        column: Index of column that should be verified, can be either an int for a list or a string for a dictionary
+        rows (list): Rows of data, where one of the rows has invalid leading values.
+        column (str | int): Index of column that should be verified.
 
     Returns:
-        any: First valid value in row
+        Optional[int]: First valid value in row.
     """
     result = None
     for row in rows:
@@ -108,19 +117,25 @@ def first_value(rows, column):
     return result
 
 
-def covid_api_request(location="Exeter", location_type="ltla"):
-    """Returns latest COVID data from GOV.UK Coronavirus API as a dictionary
-
-    For more info see https://publichealthengland.github.io/coronavirus-dashboard-api-python-sdk/
+def covid_api_request(
+    location: str = "Exeter", location_type: str = "ltla"
+) -> Optional[dict]:
+    """Makes a request to the GOV.UK COVID API.
 
     Args:
-        location(str): Location name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
-        location_type(str): Location type either "overview", "nation", "region", "nhsRegion", "utla", or "ltla", for more information see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
+        location (str, optional): Location name. See API developer guide for possible values.
+            Defaults to "Exeter".
+        location_type (str, optional): Location type. See API developer guide for possible values.
+            Defaults to "ltla".
 
     Returns:
-        dict: Response data
+        Optional[dict]: Response data.
     """
-    log.info(f"Making COVID19 API request for {location = } and {location_type = }")
+    log.info(
+        "Making COVID19 API request for location = %s and location_type = %s",
+        location,
+        location_type,
+    )
     location_filter = ["areaType=" + location_type, "areaName=" + location]
 
     data_structure = {
@@ -131,7 +146,7 @@ def covid_api_request(location="Exeter", location_type="ltla"):
     }
 
     try:
-        api = Cov19API(filters=location_filter, structure=data_structure)
+        api = uk_covid19.Cov19API(filters=location_filter, structure=data_structure)
         response = api.get_json()
         log.info("Received COVID19 API response")
         return response
@@ -143,25 +158,42 @@ def covid_api_request(location="Exeter", location_type="ltla"):
         return None
 
 
-def get_covid_data(location, nation, location_type="ltla", force_update=False):
+def get_covid_data(
+    location: str, nation: str, location_type: str = "ltla", force_update: bool = False
+) -> Optional[dict]:
+    """Gets internal cached COVID data based on the GOV.UK COVID API.
+
+    Args:
+        location (str): Location name. See API developer guide for possible values.
+        nation (str): Nation name. See API developer guide for possible values.
+        location_type (str, optional): Location type. See API developer guide for possible values.
+            Defaults to "ltla".
+        force_update (bool, optional): Ignore the cached values and force and update.
+            Defaults to False.
+
+    Returns:
+        dict: COVID data.
+    """
     # IF LOCATION/NATION HAS CHANGED OR DATA IS NONE UPDATE_COVID_DATA
     log.info("Getting COVID data")
     if internal_covid_data["location"] != location:
         log.info(
-            f"Cached location {internal_covid_data['location']} does not match"
-            f" requested location {location}"
+            "Cached location %s does not match" " requested location %s",
+            internal_covid_data["location"],
+            location,
         )
     elif internal_covid_data["nation"] != nation:
         log.info(
-            f"Cached nation {internal_covid_data['nation']} does not match requested"
-            f" nation {nation}"
+            "Cached nation %s does not match requested" " nation %s",
+            internal_covid_data["nation"],
+            nation,
         )
-    elif internal_covid_data["data"] is None:
-        log.info(f"No cached data exists for {location}, {nation}")
+    elif not internal_covid_data["data"]:
+        log.info("No cached data exists for %s, %s", location, nation)
     elif force_update:
         log.info("Forcing an update of COVID data")
     else:
-        log.info(f"Using cached COVID data for {location}, {nation}")
+        log.info("Using cached COVID data for %s, %s", location, nation)
         return internal_covid_data["data"]
     internal_covid_data["location"] = location
     internal_covid_data["nation"] = nation
@@ -169,19 +201,17 @@ def get_covid_data(location, nation, location_type="ltla", force_update=False):
     return internal_covid_data["data"]
 
 
-def update_covid_data(location, nation, location_type="ltla"):
-    """Get local and national COVID data
+def update_covid_data(location: str, nation: str, location_type: str = "ltla") -> dict:
+    """Update the cached COVID data with new values from the API.
 
     Args:
-        location (str): Location name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
-        nation (str): Nation name, see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters.
-        location_type (str, optional): Location type either "overview", "nation", "region", "nhsRegion", "utla", or "ltla", for more information see https://coronavirus.data.gov.uk/details/developers-guide/main-api#params-filters. Defaults to "ltla".
+        location (str): Location name. See API developer guide for possible values.
+        nation (str): Nation name. See API developer guide for possible values.
+        location_type (str, optional): Location type. See API developer guide for possible values.
+            Defaults to "ltla".
 
     Returns:
-        int: Local 7-day infections
-        int: National 7-day infections
-        int: National hospital cases
-        int: National total deaths
+        dict: COVID data.
     """
     local = covid_api_request(location, location_type)
     national = covid_api_request(nation, "Nation")
@@ -207,8 +237,13 @@ def update_covid_data(location, nation, location_type="ltla"):
     return covid_data
 
 
-# schedule = sched.scheduler(time.time, time.sleep)
-def schedule_covid_updates(update_interval, update_name):
-    # Use `sched` module to schedule updates to the covid data at the given time interval
-    # schedule.enter(time.time + , 1, )
-    return
+def schedule_covid_updates(update_interval: int, update_name: str) -> None:
+    """Wrapper function for scheduler module to schedule update.
+
+    Args:
+        update_interval (int): time until update, in seconds.
+        update_name (str): name of the update.
+    """
+    from scheduler import schedule_event # pylint: disable=import-outside-toplevel
+    schedule_event(timedelta(seconds=update_interval), update_name, False, True, False)
+    return True

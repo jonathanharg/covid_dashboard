@@ -1,11 +1,11 @@
-""" Handles front-end web requests, scheduling, and makes calles to back end data/news handlers"""
-# TODO: fix scheduling ???? -> Scheduling multiple events, log time delay
-# TODO: clean up code
-# TODO: type hinting
-# TODO: docstrings
+""" Handles front-end web requests and makes calles to back end data, news and scheduling handlers.
+
+Attributes:
+    log (Logger): The logger for the covid_dashboard.
+"""
 # TODO: readme
-# TODO: default updates in config [low priority]
 # TODO: tests
+# TODO: Sphinx
 
 from datetime import datetime, timedelta
 import threading
@@ -20,7 +20,7 @@ from scheduler import (
 )
 from covid_data_handler import get_covid_data
 from covid_news_handling import get_news, remove_article
-from utils import get_config, time_until
+from utils import get_settings, time_until
 
 LOG_FORMAT = (
     "%(asctime)s (%(thread)d) [%(levelname)s]: %(message)s (%(funcName)s in %(module)s)"
@@ -52,15 +52,23 @@ logging.basicConfig(
     filename="covid_dashboard.log", format=LOG_FORMAT, level=logging.DEBUG
 )
 log = logging.getLogger("covid_dashboard")
-thread = threading.Thread(target=scheduler.run)
 
 
-def create_app(testing=False):
+def create_app(testing: bool=False) -> Flask:
+    thread = threading.Thread(target=scheduler.run)
+    """Create the covid_dashboard flask app.
+
+    Args:
+        testing (bool): If the server is in testing mode or not. Defaults to False.
+
+    Returns:
+        Flask: the covid_dashboard flask app.
+    """
     flask_app = Flask(__name__)
     flask_app.testing = testing
-    log.info(f"Creating covid_dashboard flask app {__name__} with {testing = }")
+    log.info("Creating covid_dashboard flask app %s with testing = %s", __name__, testing)
 
-    location, nation = get_config("location", "nation")
+    location, nation = get_settings("location", "nation") # pylint: disable=unbalanced-tuple-unpacking
 
     # update_news()
     get_news(force_update=True)
@@ -81,19 +89,18 @@ def create_app(testing=False):
         True,
         new=False,
     )
-
     keep_alive()
     thread.start()
-    log.info(f"Starting scheduler tread with ID = {thread.native_id}")
+    log.info("Starting scheduler tread with ID = %s", thread.native_id)
 
     @flask_app.route("/")
     def main():
         """Handles input requests if any, otherwise renders the COVID dashboard"""
-        # scheduler.run(blocking=False)
+
         # GET PAGE VARIABLES & CONTENT
         log.info("Requested /")
 
-        favicon, image, title, location, nation = get_config(
+        favicon, image, title, location, nation = get_settings( # pylint: disable=unbalanced-tuple-unpacking
             "favicon", "image", "title", "location", "nation"
         )
 
@@ -108,23 +115,23 @@ def create_app(testing=False):
         nation_location = Markup(f"<strong>{nation}</strong>")
         local_7day_infections = (
             None
-            if covid_data["local_7day"] is None
-            else f"{covid_data['local_7day']:,}"
+            if covid_data["local_7day"] is None # pylint: disable=unsubscriptable-object
+            else f"{covid_data['local_7day']:,}"  # pylint: disable=unsubscriptable-object
         )
         national_7day_infections = (
             None
-            if covid_data["national_7day"] is None
-            else f"{covid_data['national_7day']:,}"
+            if covid_data["national_7day"] is None # pylint: disable=unsubscriptable-object
+            else f"{covid_data['national_7day']:,}" # pylint: disable=unsubscriptable-object
         )
         hospital_cases = (
             None
-            if covid_data["hospital"] is None
-            else Markup(f"{HOSPITAL_ICON} {covid_data['hospital']:,} hospital cases")
+            if covid_data["hospital"] is None # pylint: disable=unsubscriptable-object
+            else Markup(f"{HOSPITAL_ICON} {covid_data['hospital']:,} hospital cases") # pylint: disable=unsubscriptable-object
         )
         deaths_total = (
             None
-            if covid_data["deaths"] is None
-            else Markup(f"{DEATHS_ICON} {covid_data['deaths']:,} total deaths")
+            if covid_data["deaths"] is None # pylint: disable=unsubscriptable-object
+            else Markup(f"{DEATHS_ICON} {covid_data['deaths']:,} total deaths") # pylint: disable=unsubscriptable-object
         )
 
         for article in news_articles:
@@ -182,7 +189,7 @@ def create_app(testing=False):
         # Handle Remove Scheduled Event Request
         if "update_item" in request.args:
             title = request.args.get("update_item")
-            log.info(f"Requested removal of event {title}")
+            log.info("Requested removal of event %s", title)
             for event in scheduled_events:
                 if event["title"] == title:
                     remove_event(title)
@@ -191,13 +198,13 @@ def create_app(testing=False):
         # Handle Remove News Article Request
         if "notif" in request.args:
             title = request.args.get("notif")
-            log.info(f"Requested removal of news article {title}")
+            log.info("Requested removal of news article %s", title)
             remove_article(title)
 
         # Handle Request to Schedule New Event
         if "update" in request.args:
             label = request.args.get("two")
-            log.info(f"Request to schedule new event {label}")
+            log.info("Request to schedule new event %s", label)
             # Change request arguments to booleans
             repeat = "repeat" in request.args
             data = "covid-data" in request.args
@@ -206,7 +213,7 @@ def create_app(testing=False):
             supplied_time = request.args.get("update")
             # Make sure an event with the same title does not exist
             if any(event["title"] == label for event in scheduled_events):
-                log.warning(f"An event with the name {label} already exists! Ignoring!")
+                log.warning("An event with the name %s already exists! Ignoring!",label)
             # Make sure either data or news is being updated
             elif data or news:
                 try:
@@ -216,13 +223,11 @@ def create_app(testing=False):
 
                     schedule_event(time, label, repeat, data, news)
                 except ValueError:
-                    log.error(
-                        f"Supplied time {supplied_time} does not match the format %H:%M"
-                    )
+                    log.error("Supplied time %s does not match the format %%H:%%M", supplied_time)
             else:
                 log.warning(
-                    f"New event {label} either already exists or does not request a"
-                    " news or data update"
+                    "New event %s either already exists or does not request a"
+                    " news or data update", label
                 )
 
         # Redirect user back to root URL to stop form being submitted again on a page reload
@@ -233,6 +238,6 @@ def create_app(testing=False):
 
 
 if __name__ == "__main__":
-    # log.info("covid_dashboard running as main")
+    log.info("covid_dashboard running as main")
     app = create_app()
     app.run()

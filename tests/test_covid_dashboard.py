@@ -1,4 +1,5 @@
 from app import create_app
+from utils import get_setting
 import pytest
 
 
@@ -10,23 +11,11 @@ def client():
         yield client
 
 
-# def test_config():
-#     """Test create_app without passing test config."""
-#     assert not create_app().testing
-#     assert create_app(testing=True).testing
-
-
 @pytest.mark.parametrize("url", ["/", "/index"])
 def test_get_url(client, url):
     response = client.get(url)
     assert response.status_code in [200, 302]
 
-
-# # Remove event/news title name, time string hh:mm, label update title, repeat=repeat, etc.
-# @pytest.mark.parametrize("remove_event,remove_news,time,label,repeat,covid_data,news",[('','','','','','','')])
-# def test_input(client, remove_event, remove_news, time, label, repeat, covid_data, news):
-#     client.get(f"index?update_item={remove_event}&notif={remove_news}&update={time}&two={label}&repeat={repeat}&covid-data={covid_data}&news={news}")
-#     url='index'
 
 remove_nonexisting_event = {
     "update_item": "TRY TO REMOVE AN ARTICLE THAT DOES NOT EXIST"
@@ -76,7 +65,17 @@ def test_input_sequence(client, requests):
         else:
             url += "&"
         url += arg + "=" + requests[arg]
-    client.get(url)
+    response = client.get(url)
+    assert response.status_code in [200, 302]
 
 
 # TEST FAVICON, TEST IMAGE
+
+def test_favicon(client):
+    favicon = get_setting("favicon")
+    response = client.get(favicon)
+    assert response.status_code in [200, 302]
+
+def test_image(client):
+    image = get_setting("image")
+    response = client.get('/static/images/' + image)
