@@ -1,6 +1,4 @@
-# COVID Dashboard
-
-![icon](static/images/fish.gif)
+# COVID Dashboard <img src="static/images/fish.gif" width="50" height="50">
 ---
 
 ### What _COVID_DASHBOARD_ does...
